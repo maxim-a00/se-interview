@@ -162,6 +162,7 @@ se-interview/
 │   ├── config.py    # Centralized environment-backed app configuration
 │   ├── tools.py     # Tool schemas and implementations
 │   └── __init__.py
+├── scripts/         # Phoenix and evaluation helper utilities
 ├── tests/           # Unit tests
 ├── Dockerfile       # Container image definition
 ├── pyproject.toml   # Poetry dependencies and test config
@@ -319,3 +320,16 @@ Optional flags:
 4. If the request is travel-related, it can call `build_travel_itinerary` to create structured output
 5. The loop continues until the LLM provides a final response
 6. The response is returned to the user
+
+## Appendix: Helper Scripts
+
+The `scripts/` directory contains local utilities used for tracing, evaluation, and dataset creation. These scripts are not required to run the FastAPI app itself, but they were used to support the Phoenix analysis and evaluation workflow for the assignment.
+
+- `run_traced_prompt.py`: sends a prompt to the local API and then inspects recent Phoenix spans
+- `run_prompt_batch.py`: runs a batch of prompts and saves prompt/response results to a file
+- `export_phoenix_spans.py`: exports Phoenix spans to CSV
+- `evaluate_user_frustration.py`: runs the user-frustration evaluation in Phoenix
+- `create_frustrated_dataset.py`: creates a Phoenix dataset of frustrated interactions from reviewed traces
+- `evaluate_tool_selection_correctness.py`: runs Phoenix's `ToolSelectionEvaluator` on traced interactions
+
+I kept these scripts separate from the application package so the production API code stays focused on serving requests, while evaluation and observability workflows remain optional supporting utilities.
