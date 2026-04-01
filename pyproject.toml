@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "se-interview"
+version = "0.1.0"
+description = "A production-shaped LangGraph API with web search and comparison tools"
+authors = ["Your Name <your.email@example.com>"]
+readme = "README.md"
+packages = [{ include = "app" }]
+
+[tool.poetry.dependencies]
+python = ">=3.11,<3.14"
+langgraph = "^0.2"
+langchain = "^0.3"
+langchain-community = "^0.3"
+langchain-openai = "^0.2"
+ddgs = "^9.0"
+python-dotenv = "^1.0"
+fastapi = "^0.115"
+uvicorn = "^0.32"
+arize-phoenix = "^11.37.0"
+arize-phoenix-otel = "^0.13.0"
+openinference-instrumentation-langchain = "^0.1.45"
+openinference-instrumentation-openai = "^0.1.30"
+pytz = "^2025.2"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.4"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
