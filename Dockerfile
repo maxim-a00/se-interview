@@ -9,7 +9,7 @@ WORKDIR /app
 
 RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
 
-COPY pyproject.toml poetry.lock README.md ./
+COPY pyproject.toml README.md ./
 COPY app ./app
 COPY api.py agent.py ./
 

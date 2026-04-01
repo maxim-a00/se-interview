@@ -152,7 +152,6 @@ I made a small set of structural refactors to keep the project maintainable with
 - The workflow in `app/agent.py` was constrained after Phoenix evaluation showed repeated tool calls. Travel requests now follow a more deliberate sequence: search only when current information is needed, call `build_travel_itinerary` once, and then finalize without further tool use.
 - I stopped refactoring after those changes because they addressed real problems in the prototype. For the scope of this assignment, adding more layers would have increased complexity without much practical benefit.
 
-
 ## Project Structure
 
 ```text
