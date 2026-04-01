@@ -56,7 +56,7 @@ curl -X POST http://localhost:8000/chat \
 
 ```json
 {
-  "response": "Based on my search, here are the latest developments in AI..."
+  "response": "Based on the search results, here are the latest developments in AI..."
 }
 ```
 
@@ -125,36 +125,37 @@ The tool returns JSON with a consistent schema:
 
 ### Workflow Integration
 
-The LangGraph loop remains the same, but the available toolset is richer:
+The LangGraph workflow was intentionally constrained so the agent uses tools more deliberately:
 
 1. The user sends a message to `/chat`
-2. The LLM decides whether it needs current information from web search
-3. If the request is travel-related, the LLM can call `build_travel_itinerary`
-4. The structured travel output is added back into the conversation
-5. The LLM uses that structured result to produce the final answer
+2. The routing policy checks whether the request is travel-related and whether it needs current information
+3. If current information is needed, the agent calls web search first
+4. For travel-planning requests, the agent then calls `build_travel_itinerary` once to create structured output
+5. The structured travel output is added back into the conversation
+6. The agent writes the final answer without making additional tool calls
 
 ## Design Decisions
-
 - Web search remains responsible for fact gathering.
-- The new tool is responsible for normalization and structure, not discovery.
+- The new tool `build_travel_itinerary` is responsible for normalization and structure, not discovery.
 - The tool returns structured JSON so the agent can reason over a predictable format instead of raw prose.
 - Travel-specific fields such as `category`, `location`, `price`, `rating`, and `booking_link` make the output useful for attractions, hotels, and flights.
 - The tool also supports `trip_length_days`, `must_include`, and day-by-day `itinerary` blocks so the model has a natural path to structured travel plans.
 - The tool name was changed to `build_travel_itinerary` so the intent is explicit and easier for the model to select.
 - Source links are preserved per option so the final answer can stay grounded in the gathered evidence.
+- The workflow in `app/agent.py` was constrained after Phoenix evaluation tool-call loops within a single interaction, especially redundant search calls and duplicate itinerary generation. Travel requests now follow a more deliberate sequence: search only when current information is needed, call `build_travel_itinerary` once, and then finalize without further tool use.
 
 ### Maintainability Choices
 
-I made a small set of structural refactors to keep the project maintainable without over-engineering it.
+A small set of structural refactors was made to keep the project maintainable without over-engineering it.
 
 - Tool definitions were moved into `app/tools.py` so schema-heavy tool logic is separate from LangGraph orchestration.
 - Environment-backed settings were centralized in `app/config.py` so model settings, API metadata, and Phoenix configuration are managed in one place and are easier to test.
-- The workflow in `app/agent.py` was constrained after Phoenix evaluation showed repeated tool calls. Travel requests now follow a more deliberate sequence: search only when current information is needed, call `build_travel_itinerary` once, and then finalize without further tool use.
-- I stopped refactoring after those changes because they addressed real problems in the prototype. For the scope of this assignment, adding more layers would have increased complexity without much practical benefit.
+- Refactoring stopped after those changes because they addressed real problems in the prototype. For the scope of this assignment, adding more layers would have increased complexity without much practical benefit.
+
 
 ## Project Structure
 
-```text
+```
 se-interview/
 ├── app/
 │   ├── agent.py     # LangGraph graph and workflow routing
@@ -255,7 +256,7 @@ Tracing is enabled before the agent is built, so LangGraph execution, LLM spans,
 
 ### Chosen Metric: Agent Tool Selection
 
-I chose `agent tool selection` as the additional evaluation metric because the project requirement includes extending the agent with a tool, and Phoenix provides a built-in evaluator specifically for measuring whether an agent selected the appropriate tool for a request.
+`Agent tool selection evals` was chosen as the additional evaluation metric because the project requirement includes extending the agent with a tool, and Phoenix provides a built-in evaluator specifically for measuring whether an agent selected the appropriate tool for a request.
 
 ### Why This Metric
 
@@ -269,11 +270,11 @@ I chose `agent tool selection` as the additional evaluation metric because the p
 This metric choice was informed by earlier Phoenix evaluation runs rather than chosen in the abstract.
 
 - In the first traced runs, the agent often over-relied on `duckduckgo_search` and did not consistently select the custom travel tool for structured travel-planning prompts.
-- After reviewing those traces, I redesigned the travel tool to make its intent clearer and to better match the kinds of outputs users were requesting, such as itineraries and booking-oriented recommendations.
-- I then reran Phoenix evaluation and saw that the custom tool was being invoked more often, but tool selection was still judged incorrect in many cases because the agent was overcalling tools or combining search and itinerary generation inefficiently.
+- After reviewing those traces, the travel tool was redesigned to make its intent clearer and to better match the kinds of outputs users were requesting, such as itineraries and booking-oriented recommendations.
+- Phoenix evaluation was then rerun, and the custom tool was invoked more often, but tool selection was still judged incorrect in many cases because the agent was overcalling tools or combining search and itinerary generation inefficiently.
 - That feedback led to the next workflow change: the LangGraph policy was constrained so travel requests follow a more deliberate sequence, using search only when current information is needed, then calling `build_travel_itinerary` once, and finally producing the answer without additional tool calls.
 
-This iteration cycle made `Agent Tool Selection` the most useful metric for the project, because it directly reflected whether the workflow changes were improving the agent's actual decision-making.
+This iteration cycle made `Agent Tool Selection Evals` the most useful metric for the project, because it directly reflected whether the workflow changes were improving the agent's actual decision-making.
 
 ### Method
 
@@ -315,10 +316,10 @@ Optional flags:
 ## How It Works
 
 1. The agent receives a user message via the `/chat` endpoint
-2. It calls GPT-4o with the message and available tools
-3. If the LLM decides to search, it executes DuckDuckGo search and feeds results back
-4. If the request is travel-related, it can call `build_travel_itinerary` to create structured output
-5. The loop continues until the LLM provides a final response
+2. Routing logic determines whether the request is a travel-planning request and whether live search is actually needed
+3. If live information is needed, the agent calls DuckDuckGo search once and feeds the result back into the graph
+4. For structured travel requests, the agent calls `build_travel_itinerary` once to normalize the recommendation set into JSON
+5. After the structured tool output is available, the agent finalizes the response without further tool calls
 6. The response is returned to the user
 
 ## Appendix: Helper Scripts
@@ -332,4 +333,4 @@ The `scripts/` directory contains local utilities used for tracing, evaluation, 
 - `create_frustrated_dataset.py`: creates a Phoenix dataset of frustrated interactions from reviewed traces
 - `evaluate_tool_selection_correctness.py`: runs Phoenix's `ToolSelectionEvaluator` on traced interactions
 
-I kept these scripts separate from the application package so the production API code stays focused on serving requests, while evaluation and observability workflows remain optional supporting utilities.
+These scripts are kept separate from the application package so the production API code stays focused on serving requests, while evaluation and observability workflows remain optional supporting utilities.
